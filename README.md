@@ -1,2 +1,2 @@
 # Jaguar
-Easy osint tool
+Jaguar — professional OSINT toolkit for username investigation
