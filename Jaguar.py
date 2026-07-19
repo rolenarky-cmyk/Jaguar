@@ -1,18 +1,21 @@
 import os
-import sys
 import requests
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Фиксированный ASCII-арт
-JAGUAR_ART = r"""
-    ____.                                     
-   |    |____    ____  __ _______ _______ 
-   |    \__  \  / ___\|  |  \__  \\_  __ \
-/\__|    |/ __ \_/ /_/  >  |  // __ \|  | \/
-\________(____  /\___  /|____/(____  /__|   
-              \//_____/            \/       
-"""
+# Коды ANSI для цвета
+WHITE = "\033[97m"
+RESET = "\033[0m"
+
+# Новый ASCII-арт
+JAGUAR_ART = f"""{WHITE}
+    ___  ________  ________  ___  ___  ________  ________    
+   |\  \|\   __  \|\   ____\|\  \|\  \|\   __  \|\   __  \    
+   \ \  \ \  \|\  \ \  \___|\ \  \\\  \ \  \|\  \ \  \|\  \   
+ __ \ \  \ \   __  \ \  \  __\ \  \\\  \ \   __  \ \   _  _\  
+|\  \\_\  \ \  \ \  \ \  \|\  \ \  \\\  \ \  \ \  \ \  \\  \| 
+\ \________\ \__\ \__\ \_______\ \_______\ \__\ \__\ \__\\ _\ 
+ \|________|\|__|\|__|\|_______|\|_______|\|__|\|__|\|__|\|__|
+{RESET}"""
 
 # База данных для поиска
 SITES_DATABASE = {
@@ -28,7 +31,6 @@ SITES_DATABASE = {
 def check_site(site_name, url_template, username):
     url = url_template.format(username)
     try:
-        # Таймаут, чтобы консоль не висла
         resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=5, verify=False)
         if resp.status_code == 200:
             return f"[+] НАЙДЕН: {site_name} -> {url}"
@@ -37,7 +39,6 @@ def check_site(site_name, url_template, username):
     return None
 
 def main():
-    # Очистка экрана консоли
     os.system('cls' if os.name == 'nt' else 'clear')
     print(JAGUAR_ART)
     
