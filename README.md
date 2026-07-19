@@ -1,0 +1,2 @@
+# Jaguar
+Easy osint tool
