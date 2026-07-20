@@ -1,1 +1,112 @@
+import os
+import requests
+import msvcrt
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from colorama import init
 
+# Инициализация colorama
+init(autoreset=True)
+
+# ANSI коды цветов
+WHITE = "\033[97m"
+GREEN = "\033[92m"
+RED = "\033[91m"
+
+# ASCII Art
+JAGUAR_ART = f"""{WHITE}
+    ___  ________  ________  ___  ___  ________  ________    
+   |\  \|\   __  \|\   ____\|\  \|\  \|\   __  \|\   __  \    
+   \ \  \ \  \|\  \ \   ___|\ \  \\\  \ \  \|\  \ \  \|\  \   
+ __ \ \  \ \   __  \ \   __ \ \  \\\  \ \   __  \ \   _  _\  
+|\  \\_\  \ \  \ \  \ \  \|\  \ \  \\\  \ \  \ \  \ \  \\  \| 
+\ \________\ \__\ \__\ \_______\ \_______\ \__\ \__\ \__\\ _\ 
+ \|________|\|__|\|__|\|_______|\|_______|\|__|\|__|\|__|\|__|
+"""
+
+# База сайтов
+SITES_DATABASE = {
+    "Spotify": "https://open.spotify.com/user/{}",
+    "TikTok": "https://www.tiktok.com/@{}",
+    "Snapchat": "https://www.snapchat.com/add/{}",
+    "Telegram": "https://t.me/{}",
+    "Reddit": "https://www.reddit.com/user/{}",
+    "Instagram": "https://www.instagram.com/{}/",
+    "GitHub": "https://github.com/{}",
+    "Twitter/X": "https://twitter.com/{}",
+    "Steam": "https://steamcommunity.com/id/{}",
+    "Twitch": "https://www.twitch.tv/{}",
+    "Discord": "https://discord.com/users/{}",
+    "YouTube": "https://www.youtube.com/@{}"
+}
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+}
+
+# Ключевые слова для поиска "пустых" страниц
+NEGATIVE_KEYWORDS = ["not found", "doesn't exist", "does not exist", "page not found", "user not found", "profile not found", "404"]
+
+def check_site(site_name, url_template, username):
+    url = url_template.format(username)
+    try:
+        # allow_redirects=True позволяет отслеживать, не перебросило ли нас на главную
+        resp = requests.get(url, headers=HEADERS, timeout=10, verify=False, allow_redirects=True)
+        
+        # 1. Проверка на 404 код
+        if resp.status_code == 404:
+            return f"{WHITE}[-] {RED}NOT FOUND: {site_name}"
+            
+        # 2. Проверка редиректа: если итоговый URL отличается от того, что мы запрашивали — профиля нет
+        # (Например, Instagram перебрасывает на логин, если пользователя нет)
+        if url != resp.url:
+            return f"{WHITE}[-] {RED}NOT FOUND (Redirect): {site_name}"
+            
+        # 3. Проверка контента на ключевые слова
+        content = resp.text.lower()
+        if any(phrase in content for phrase in NEGATIVE_KEYWORDS):
+            return f"{WHITE}[-] {RED}NOT FOUND: {site_name}"
+            
+        # Если статус 200 и редиректа не было — профиль найден
+        return f"{WHITE}[+] {GREEN}FOUND: {site_name} -> {url}"
+        
+    except:
+        return f"{WHITE}[-] {RED}NOT FOUND: {site_name}"
+
+def run_scan():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(JAGUAR_ART)
+    
+    username = input(f"{WHITE}Enter username to search: ").strip()
+    if not username: return
+
+    print(f"\n{WHITE}[*] Scanning...")
+    results = []
+    
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(check_site, name, url, username): name for name, url in SITES_DATABASE.items()}
+        for future in as_completed(futures):
+            res = future.result()
+            print(res) 
+            if "[+]" in res:
+                results.append(res)
+    
+    if results:
+        file_name = f"result_{username}.txt"
+        with open(file_name, "w", encoding="utf-8") as f:
+            # Очищаем строку от ANSI кодов перед записью
+            clean_results = [r.replace(WHITE, "").replace(GREEN, "").replace(RED, "") for r in results]
+            f.write("\n".join(clean_results))
+        print(f"\n{WHITE}[!] Success! Results saved to {file_name}")
+    
+    print(f"\n{WHITE}--- Scan complete ---")
+
+def main():
+    while True:
+        run_scan()
+        print(f"\n{WHITE}Press [Space] to search again or any other key to exit...")
+        if ord(msvcrt.getch()) != 32: 
+            break
+
+if __name__ == "__main__":
+    requests.packages.urllib3.disable_warnings()
+    main()
